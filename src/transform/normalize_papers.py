@@ -1,6 +1,3 @@
-from datetime import datetime, timezone
-
-
 def clean_openalex_id(value: str | None) -> str | None:
     if not value:
         return None
@@ -13,50 +10,89 @@ def clean_doi(value: str | None) -> str | None:
     return value.replace("https://doi.org/", "").lower().strip()
 
 
+def reconstruct_abstract(inverted_index: dict | None) -> str | None:
+    if not inverted_index:
+        return None
+
+    positioned_words = []
+    for word, positions in inverted_index.items():
+        for position in positions:
+            positioned_words.append((position, word))
+
+    if not positioned_words:
+        return None
+
+    return " ".join(word for _, word in sorted(positioned_words))
+
+
+def format_page(biblio: dict) -> str | None:
+    first_page = biblio.get("first_page")
+    last_page = biblio.get("last_page")
+
+    if first_page and last_page:
+        return f"{first_page}-{last_page}"
+
+    return first_page or last_page
+
+
 def transform_paper(raw: dict) -> dict:
     source = (raw.get("primary_location") or {}).get("source") or {}
     primary_topic = raw.get("primary_topic") or {}
+    biblio = raw.get("biblio") or {}
+    abstract_inverted_index = raw.get("abstract_inverted_index")
 
     return {
-        "paper_id": clean_openalex_id(raw.get("id")),
-        "openalex_id": raw.get("id"),
+        "source_record_id": clean_openalex_id(raw.get("id")),
+        "source_record_url": raw.get("id"),
         "doi": clean_doi(raw.get("doi")),
         "title": raw.get("title"),
         "display_name": raw.get("display_name"),
+        "abstract": reconstruct_abstract(abstract_inverted_index),
         "publication_year": raw.get("publication_year"),
         "publication_date": raw.get("publication_date"),
         "language": raw.get("language"),
         "type": raw.get("type"),
         "cited_by_count": raw.get("cited_by_count", 0),
         "referenced_works_count": raw.get("referenced_works_count", 0),
+        "volume": biblio.get("volume"),
+        "issue": biblio.get("issue"),
+        "page": format_page(biblio),
+        "is_retracted": raw.get("is_retracted"),
         "referenced_works": [
             clean_openalex_id(x) for x in raw.get("referenced_works", [])
         ],
         "related_works": [clean_openalex_id(x) for x in raw.get("related_works", [])],
-        "abstract_inverted_index": raw.get("abstract_inverted_index"),
+        "abstract_inverted_index": abstract_inverted_index,
         "open_access": raw.get("open_access"),
         "journal": {
-            "journal_id": clean_openalex_id(source.get("id")),
+            "source_record_id": clean_openalex_id(source.get("id")),
+            "source_record_url": source.get("id"),
             "display_name": source.get("display_name"),
             "type": source.get("type"),
         },
         "primary_topic": {
-            "topic_id": clean_openalex_id(primary_topic.get("id")),
+            "source_record_id": clean_openalex_id(primary_topic.get("id")),
+            "source_record_url": primary_topic.get("id"),
             "display_name": primary_topic.get("display_name"),
             "score": primary_topic.get("score"),
         },
         "authors": [
             {
-                "author_id": clean_openalex_id((a.get("author") or {}).get("id")),
+                "source_record_id": clean_openalex_id(
+                    (a.get("author") or {}).get("id")
+                ),
+                "source_record_url": (a.get("author") or {}).get("id"),
                 "display_name": (a.get("author") or {}).get("display_name"),
                 "author_position": a.get("author_position"),
                 "is_corresponding": a.get("is_corresponding"),
+                "raw_author_name": a.get("raw_author_name"),
             }
             for a in raw.get("authorships", [])
         ],
         "keywords": [
             {
-                "keyword_id": clean_openalex_id(k.get("id")),
+                "source_record_id": clean_openalex_id(k.get("id")),
+                "source_record_url": k.get("id"),
                 "display_name": k.get("display_name"),
                 "score": k.get("score"),
             }
@@ -64,15 +100,14 @@ def transform_paper(raw: dict) -> dict:
         ],
         "topics": [
             {
-                "topic_id": clean_openalex_id(t.get("id")),
+                "source_record_id": clean_openalex_id(t.get("id")),
+                "source_record_url": t.get("id"),
                 "display_name": t.get("display_name"),
                 "score": t.get("score"),
             }
             for t in raw.get("topics", [])
         ],
         "counts_by_year": raw.get("counts_by_year", []),
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
     }
 
 
@@ -81,22 +116,23 @@ def transform_authors(raw: dict) -> list[dict]:
 
     for item in raw.get("authorships", []):
         author = item.get("author") or {}
-        author_id = clean_openalex_id(author.get("id"))
+        source_record_id = clean_openalex_id(author.get("id"))
 
-        if not author_id:
+        if not source_record_id:
             continue
 
         authors.append(
             {
-                "author_id": author_id,
-                "openalex_id": author.get("id"),
+                "source_record_id": source_record_id,
+                "source_record_url": author.get("id"),
                 "display_name": author.get("display_name"),
                 "orcid": author.get("orcid"),
                 "raw_author_names": [item.get("raw_author_name")],
                 "countries": item.get("countries", []),
+                "affiliations": item.get("affiliations", []),
+                "raw_affiliation_strings": item.get("raw_affiliation_strings", []),
                 "institutions": item.get("institutions", []),
-                "last_seen_paper_id": clean_openalex_id(raw.get("id")),
-                "updated_at": datetime.now(timezone.utc),
+                "last_seen_source_record_id": clean_openalex_id(raw.get("id")),
             }
         )
 
@@ -106,33 +142,32 @@ def transform_authors(raw: dict) -> list[dict]:
 def transform_journal(raw: dict) -> dict | None:
     source = (raw.get("primary_location") or {}).get("source") or {}
 
-    journal_id = clean_openalex_id(source.get("id"))
-    if not journal_id:
+    source_record_id = clean_openalex_id(source.get("id"))
+    if not source_record_id:
         return None
 
     return {
-        "journal_id": journal_id,
-        "openalex_id": source.get("id"),
+        "source_record_id": source_record_id,
+        "source_record_url": source.get("id"),
         "display_name": source.get("display_name"),
         "issn_l": source.get("issn_l"),
         "issn": source.get("issn"),
         "type": source.get("type"),
         "is_oa": source.get("is_oa"),
         "is_in_doaj": source.get("is_in_doaj"),
+        "is_core": source.get("is_core"),
         "host_organization": source.get("host_organization"),
         "host_organization_name": source.get("host_organization_name"),
-        "updated_at": datetime.now(timezone.utc),
     }
 
 
 def transform_keywords(raw: dict) -> list[dict]:
     return [
         {
-            "keyword_id": clean_openalex_id(k.get("id")),
-            "openalex_id": k.get("id"),
+            "source_record_id": clean_openalex_id(k.get("id")),
+            "source_record_url": k.get("id"),
             "display_name": k.get("display_name"),
             "score": k.get("score"),
-            "updated_at": datetime.now(timezone.utc),
         }
         for k in raw.get("keywords", [])
         if k.get("id")
@@ -145,14 +180,13 @@ def transform_topics(raw: dict) -> list[dict]:
     for topic in raw.get("topics", []):
         topics.append(
             {
-                "topic_id": clean_openalex_id(topic.get("id")),
-                "openalex_id": topic.get("id"),
+                "source_record_id": clean_openalex_id(topic.get("id")),
+                "source_record_url": topic.get("id"),
                 "display_name": topic.get("display_name"),
                 "score": topic.get("score"),
                 "subfield": topic.get("subfield"),
                 "field": topic.get("field"),
                 "domain": topic.get("domain"),
-                "updated_at": datetime.now(timezone.utc),
             }
         )
 

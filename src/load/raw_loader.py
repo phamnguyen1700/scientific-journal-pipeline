@@ -1,11 +1,13 @@
-from datetime import datetime, timezone
+import json
 
-from bson import ObjectId
-from pymongo import UpdateOne
+from src.config.sqlserver import get_connection
+from src.load.pipeline_run_loader import get_source_id
 
-from src.config.mongodb import get_database
 
-db = get_database()
+def clean_source_record_id(value: str | None) -> str | None:
+    if not value:
+        return None
+    return value.rstrip("/").split("/")[-1]
 
 
 def load_raw_papers(
@@ -13,52 +15,86 @@ def load_raw_papers(
     source_name: str,
     source_entity: str,
     query_keyword: str,
-    pipeline_run_id: ObjectId,
+    pipeline_run_id: str,
 ) -> int:
     if not raw_items:
         return 0
 
-    operations = []
+    source_id = get_source_id(source_name)
+    inserted_count = 0
 
-    now = datetime.now(timezone.utc)
+    with get_connection() as conn:
+        cursor = conn.cursor()
 
-    for item in raw_items:
-        source_record_id = item.get("id")
+        for item in raw_items:
+            source_record_id = clean_source_record_id(item.get("id"))
 
-        if not source_record_id:
-            continue
+            if not source_record_id:
+                continue
 
-        operations.append(
-            UpdateOne(
-                {
-                    "source_name": source_name,
-                    "source_record_id": source_record_id,
-                },
-                {
-                    "$setOnInsert": {
-                        "source_name": source_name,
-                        "source_entity": source_entity,
-                        "source_record_id": source_record_id,
-                        "raw_data": item,
-                        "fetched_at": now,
-                        "processed_status": "pending",
-                    },
-                    "$set": {
-                        "query_keyword": query_keyword,
-                        "pipeline_run_id": pipeline_run_id,
-                        "last_seen_at": now,
-                    },
-                },
-                upsert=True,
+            raw_data = json.dumps(item, ensure_ascii=False)
+
+            cursor.execute(
+                """
+                SELECT raw_work_id
+                FROM raw.works
+                WHERE source_id = ?
+                  AND source_record_id = ?
+                """,
+                source_id,
+                source_record_id,
             )
-        )
+            row = cursor.fetchone()
 
-    if not operations:
-        return 0
+            if row:
+                cursor.execute(
+                    """
+                    UPDATE raw.works
+                    SET
+                        source_entity = ?,
+                        query_keyword = ?,
+                        pipeline_run_id = ?,
+                        raw_data = ?,
+                        last_seen_at = SYSUTCDATETIME()
+                    WHERE raw_work_id = ?
+                    """,
+                    source_entity,
+                    query_keyword,
+                    pipeline_run_id,
+                    raw_data,
+                    row.raw_work_id,
+                )
+                continue
 
-    result = db.raw_papers.bulk_write(
-        operations,
-        ordered=False,
-    )
+            cursor.execute(
+                """
+                INSERT INTO raw.works (
+                    source_id,
+                    source_entity,
+                    source_record_id,
+                    query_keyword,
+                    pipeline_run_id,
+                    raw_data,
+                    fetched_at,
+                    last_seen_at,
+                    processed_status
+                )
+                VALUES (
+                    ?, ?, ?, ?, ?, ?,
+                    SYSUTCDATETIME(),
+                    SYSUTCDATETIME(),
+                    'pending'
+                )
+                """,
+                source_id,
+                source_entity,
+                source_record_id,
+                query_keyword,
+                pipeline_run_id,
+                raw_data,
+            )
+            inserted_count += 1
 
-    return result.upserted_count
+        conn.commit()
+
+    return inserted_count

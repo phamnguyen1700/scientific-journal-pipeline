@@ -1,5 +1,7 @@
-from src.config.mongodb import get_database
+import json
 
+from src.config.sqlserver import get_connection
+from src.load.pipeline_run_loader import get_source_id
 from src.transform.normalize_papers import (
     transform_paper,
     transform_authors,
@@ -18,56 +20,76 @@ from src.load.canonical_loader import (
     mark_raw_failed,
 )
 
-db = get_database()
+
+def fetch_pending_raw_papers(limit: int) -> list:
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT TOP (?) raw_work_id, raw_data
+            FROM raw.works
+            WHERE processed_status = 'pending'
+            ORDER BY fetched_at ASC
+            """,
+            limit,
+        )
+        return cursor.fetchall()
 
 
 def process_pending_raw_papers(limit: int = 100) -> None:
-
-    raw_docs = db.raw_papers.find({"processed_status": "pending"}).limit(limit)
+    raw_docs = fetch_pending_raw_papers(limit)
+    source_id = get_source_id("OpenAlex")
 
     for raw_doc in raw_docs:
+        raw_work_id = str(raw_doc.raw_work_id)
 
         try:
-            raw = raw_doc["raw_data"]
+            raw = json.loads(raw_doc.raw_data)
 
             paper = transform_paper(raw)
 
-            if not paper.get("paper_id") or not paper.get("title"):
+            if not paper.get("source_record_id") or not paper.get("title"):
                 raise ValueError(
-                    f"Invalid paper: missing paper_id or title. raw_id={raw_doc['_id']}"
+                    f"Invalid paper: missing source_record_id or title. raw_id={raw_work_id}"
                 )
 
             authors = transform_authors(raw)
-
             journal = transform_journal(raw)
-
             keywords = transform_keywords(raw)
-
             topics = transform_topics(raw)
 
-            # load canonical collections
+            journal_id = upsert_journal(journal, source_id=source_id)
 
-            upsert_journal(journal)
+            paper_id = upsert_paper(
+                paper,
+                journal_id=journal_id,
+                source_id=source_id,
+                raw_work_id=raw_work_id,
+            )
 
-            upsert_authors(authors)
+            upsert_authors(
+                authors,
+                paper_id=paper_id,
+                paper_authors=paper.get("authors", []),
+                source_id=source_id,
+            )
 
-            upsert_keywords(keywords)
+            upsert_keywords(
+                keywords,
+                paper_id=paper_id,
+                source_id=source_id,
+            )
 
             upsert_topics(topics)
 
-            upsert_paper(paper)
+            mark_raw_processed(raw_work_id)
 
-            # mark success
-
-            mark_raw_processed(raw_doc["_id"])
-
-            print(f"Processed: " f"{paper['paper_id']} | " f"{paper['title']}")
+            print(f"Processed: {paper['source_record_id']} | {paper['title']}")
 
         except Exception as error:
-
             mark_raw_failed(
-                raw_doc["_id"],
+                raw_work_id,
                 str(error),
             )
 
-            print(f"Failed raw paper " f"{raw_doc['_id']}: {error}")
+            print(f"Failed raw paper {raw_work_id}: {error}")
