@@ -80,7 +80,11 @@ def process_pending_raw_papers(limit: int = 100) -> None:
                 source_id=source_id,
             )
 
-            upsert_topics(topics)
+            upsert_topics(
+                topics,
+                paper_id=paper_id,
+                source_id=source_id,
+            )
 
             mark_raw_processed(raw_work_id)
 

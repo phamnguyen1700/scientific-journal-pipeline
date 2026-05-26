@@ -35,6 +35,45 @@ def format_page(biblio: dict) -> str | None:
     return first_page or last_page
 
 
+def transform_taxonomy_node(node: dict | None) -> dict | None:
+    if not node:
+        return None
+
+    source_record_id = clean_openalex_id(node.get("id"))
+    display_name = node.get("display_name")
+
+    if not source_record_id and not display_name:
+        return None
+
+    return {
+        "source_record_id": source_record_id,
+        "source_record_url": node.get("id"),
+        "display_name": display_name,
+    }
+
+
+def transform_topic_node(topic: dict | None) -> dict | None:
+    if not topic:
+        return None
+
+    source_record_id = clean_openalex_id(topic.get("id"))
+    display_name = topic.get("display_name")
+
+    if not source_record_id and not display_name:
+        return None
+
+    return {
+        "source_record_id": source_record_id,
+        "source_record_url": topic.get("id"),
+        "display_name": display_name,
+        "score": topic.get("score"),
+        "count": topic.get("count"),
+        "domain": transform_taxonomy_node(topic.get("domain")),
+        "field": transform_taxonomy_node(topic.get("field")),
+        "subfield": transform_taxonomy_node(topic.get("subfield")),
+    }
+
+
 def transform_paper(raw: dict) -> dict:
     source = (raw.get("primary_location") or {}).get("source") or {}
     primary_topic = raw.get("primary_topic") or {}
@@ -70,12 +109,7 @@ def transform_paper(raw: dict) -> dict:
             "display_name": source.get("display_name"),
             "type": source.get("type"),
         },
-        "primary_topic": {
-            "source_record_id": clean_openalex_id(primary_topic.get("id")),
-            "source_record_url": primary_topic.get("id"),
-            "display_name": primary_topic.get("display_name"),
-            "score": primary_topic.get("score"),
-        },
+        "primary_topic": transform_topic_node(primary_topic),
         "authors": [
             {
                 "source_record_id": clean_openalex_id(
@@ -99,13 +133,9 @@ def transform_paper(raw: dict) -> dict:
             for k in raw.get("keywords", [])
         ],
         "topics": [
-            {
-                "source_record_id": clean_openalex_id(t.get("id")),
-                "source_record_url": t.get("id"),
-                "display_name": t.get("display_name"),
-                "score": t.get("score"),
-            }
-            for t in raw.get("topics", [])
+            topic
+            for topic in (transform_topic_node(t) for t in raw.get("topics", []))
+            if topic
         ],
         "counts_by_year": raw.get("counts_by_year", []),
     }
@@ -175,19 +205,8 @@ def transform_keywords(raw: dict) -> list[dict]:
 
 
 def transform_topics(raw: dict) -> list[dict]:
-    topics = []
-
-    for topic in raw.get("topics", []):
-        topics.append(
-            {
-                "source_record_id": clean_openalex_id(topic.get("id")),
-                "source_record_url": topic.get("id"),
-                "display_name": topic.get("display_name"),
-                "score": topic.get("score"),
-                "subfield": topic.get("subfield"),
-                "field": topic.get("field"),
-                "domain": topic.get("domain"),
-            }
-        )
-
-    return topics
+    return [
+        topic
+        for topic in (transform_topic_node(topic) for topic in raw.get("topics", []))
+        if topic
+    ]

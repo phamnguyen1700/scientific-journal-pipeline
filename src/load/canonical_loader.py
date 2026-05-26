@@ -37,6 +37,134 @@ def fetch_mapping_id(
     return str(getattr(row, id_column)) if row else None
 
 
+def upsert_taxonomy_level(
+    cursor,
+    node: dict | None,
+    source_id: str,
+    entity_table: str,
+    entity_id_column: str,
+    entity_name_column: str,
+    mapping_table: str,
+    parent_column: str | None = None,
+    parent_id: str | None = None,
+) -> str | None:
+    if not node or not node.get("display_name"):
+        return None
+
+    source_record_id = node.get("source_record_id")
+    source_record_url = node.get("source_record_url")
+    display_name = node["display_name"]
+
+    if source_record_id:
+        entity_id = fetch_mapping_id(
+            cursor,
+            mapping_table,
+            entity_id_column,
+            source_id,
+            source_record_id,
+        )
+        if entity_id:
+            cursor.execute(
+                f"""
+                UPDATE {entity_table}
+                SET
+                    {entity_name_column} = ?,
+                    updated_at = SYSUTCDATETIME()
+                WHERE {entity_id_column} = ?
+                """,
+                display_name,
+                entity_id,
+            )
+            return entity_id
+
+    if parent_column:
+        cursor.execute(
+            f"""
+            SELECT {entity_id_column}
+            FROM {entity_table}
+            WHERE (
+                ({parent_column} = ?)
+                OR ({parent_column} IS NULL AND ? IS NULL)
+            )
+              AND normalized_name = LOWER(LTRIM(RTRIM(?)))
+            """,
+            parent_id,
+            parent_id,
+            display_name,
+        )
+    else:
+        cursor.execute(
+            f"""
+            SELECT {entity_id_column}
+            FROM {entity_table}
+            WHERE normalized_name = LOWER(LTRIM(RTRIM(?)))
+            """,
+            display_name,
+        )
+
+    row = cursor.fetchone()
+
+    if row:
+        entity_id = str(getattr(row, entity_id_column))
+    else:
+        if parent_column:
+            cursor.execute(
+                f"""
+                INSERT INTO {entity_table} (
+                    {parent_column},
+                    {entity_name_column},
+                    updated_at
+                )
+                OUTPUT INSERTED.{entity_id_column}
+                VALUES (?, ?, SYSUTCDATETIME())
+                """,
+                parent_id,
+                display_name,
+            )
+        else:
+            cursor.execute(
+                f"""
+                INSERT INTO {entity_table} (
+                    {entity_name_column},
+                    updated_at
+                )
+                OUTPUT INSERTED.{entity_id_column}
+                VALUES (?, SYSUTCDATETIME())
+                """,
+                display_name,
+            )
+        entity_id = str(getattr(cursor.fetchone(), entity_id_column))
+
+    if source_record_id:
+        cursor.execute(
+            f"""
+            IF NOT EXISTS (
+                SELECT 1
+                FROM {mapping_table}
+                WHERE source_id = ?
+                  AND source_record_id = ?
+            )
+            INSERT INTO {mapping_table} (
+                {entity_id_column},
+                source_id,
+                source_record_id,
+                source_record_url,
+                source_specific_data
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            source_id,
+            source_record_id,
+            entity_id,
+            source_id,
+            source_record_id,
+            source_record_url,
+            json_or_none(node),
+        )
+
+    return entity_id
+
+
 def upsert_journal(journal: dict | None, source_id: str | None = None) -> str | None:
     if not journal or not journal.get("source_record_id"):
         return None
@@ -501,8 +629,105 @@ def upsert_keywords(
     return keyword_ids
 
 
-def upsert_topics(topics: list[dict]) -> None:
-    return None
+def upsert_topics(
+    topics: list[dict],
+    paper_id: str | None = None,
+    source_id: str | None = None,
+) -> dict[str, str]:
+    if not topics:
+        return {}
+
+    source_id = source_id or get_source_id("OpenAlex")
+    topic_ids = {}
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        for topic in topics:
+            source_record_id = topic.get("source_record_id")
+
+            domain_id = upsert_taxonomy_level(
+                cursor=cursor,
+                node=topic.get("domain"),
+                source_id=source_id,
+                entity_table="core.research_domains",
+                entity_id_column="domain_id",
+                entity_name_column="domain_name",
+                mapping_table="core.domain_source_mappings",
+            )
+
+            field_id = upsert_taxonomy_level(
+                cursor=cursor,
+                node=topic.get("field"),
+                source_id=source_id,
+                entity_table="core.research_fields",
+                entity_id_column="field_id",
+                entity_name_column="field_name",
+                mapping_table="core.field_source_mappings",
+                parent_column="domain_id",
+                parent_id=domain_id,
+            )
+
+            subfield_id = upsert_taxonomy_level(
+                cursor=cursor,
+                node=topic.get("subfield"),
+                source_id=source_id,
+                entity_table="core.research_subfields",
+                entity_id_column="subfield_id",
+                entity_name_column="subfield_name",
+                mapping_table="core.subfield_source_mappings",
+                parent_column="field_id",
+                parent_id=field_id,
+            )
+
+            topic_id = upsert_taxonomy_level(
+                cursor=cursor,
+                node=topic,
+                source_id=source_id,
+                entity_table="core.research_topics",
+                entity_id_column="topic_id",
+                entity_name_column="topic_name",
+                mapping_table="core.topic_source_mappings",
+                parent_column="subfield_id",
+                parent_id=subfield_id,
+            )
+
+            if not topic_id:
+                continue
+
+            if source_record_id:
+                topic_ids[source_record_id] = topic_id
+
+            if paper_id:
+                cursor.execute(
+                    """
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM core.paper_topics
+                        WHERE paper_id = ?
+                          AND topic_id = ?
+                          AND source_id = ?
+                    )
+                    INSERT INTO core.paper_topics (
+                        paper_id,
+                        topic_id,
+                        score,
+                        source_id
+                    )
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    paper_id,
+                    topic_id,
+                    source_id,
+                    paper_id,
+                    topic_id,
+                    topic.get("score"),
+                    source_id,
+                )
+
+        conn.commit()
+
+    return topic_ids
 
 
 def mark_raw_processed(raw_id: str) -> None:
