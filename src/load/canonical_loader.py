@@ -729,35 +729,3 @@ def upsert_topics(
 
     return topic_ids
 
-
-def mark_raw_processed(raw_id: str) -> None:
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            UPDATE raw.works
-            SET
-                processed_status = 'processed',
-                process_error = NULL
-            WHERE raw_work_id = ?
-            """,
-            raw_id,
-        )
-        conn.commit()
-
-
-def mark_raw_failed(raw_id: str, error_message: str) -> None:
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            UPDATE raw.works
-            SET
-                processed_status = 'failed',
-                process_error = ?
-            WHERE raw_work_id = ?
-            """,
-            error_message,
-            raw_id,
-        )
-        conn.commit()

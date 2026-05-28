@@ -6,7 +6,7 @@ from src.load.pipeline_run_loader import (
     mark_pipeline_run_failed,
 )
 
-from src.load.raw_loader import load_raw_papers
+from src.load.raw.entities import load_raw_entities
 
 
 def run_openalex_raw_ingestion(
@@ -29,10 +29,10 @@ def run_openalex_raw_ingestion(
             per_page=per_page,
         )
 
-        inserted_count = load_raw_papers(
+        inserted_count = load_raw_entities(
             raw_items=raw_items,
             source_name=source_name,
-            source_entity=source_entity,
+            entity=source_entity,
             query_keyword=keyword,
             pipeline_run_id=run_id,
         )

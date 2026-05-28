@@ -1,9 +1,9 @@
-from src.jobs.ingest_openalex import (
+from src.jobs.ingest.openalex_works import (
     run_openalex_raw_ingestion,
 )
 
-from src.jobs.process_raw_papers import (
-    process_pending_raw_papers,
+from src.jobs.process.raw_works import (
+    process_pending_raw_works,
 )
 
 from src.config.seed_keywords import SEED_KEYWORDS
@@ -25,14 +25,14 @@ def main():
 
         if inserted_count > 0:
 
-            process_pending_raw_papers(limit=inserted_count)
+            process_pending_raw_works(limit=inserted_count)
 
             print(f"Transform success for keyword: {keyword}")
 
         else:
             print(f"No new records inserted for keyword: {keyword}")
 
-    print(f"\nPipeline completed. " f"Total inserted raw papers: {total_inserted}")
+    print(f"\nPipeline completed. " f"Total changed raw works: {total_inserted}")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,16 @@
+from collections.abc import Callable
+
 from src.config.sqlserver import get_connection
-from src.jobs.process_raw_papers import process_pending_raw_papers
+from src.load.raw.entities import get_raw_entity_config
 
 
-def queue_raw_papers_for_reprocess(
+def queue_raw_entity_for_reprocess(
+    entity: str,
     limit: int | None = None,
     source_record_id: str | None = None,
 ) -> int:
+    config = get_raw_entity_config(entity)
+
     with get_connection() as conn:
         cursor = conn.cursor()
 
@@ -20,13 +25,13 @@ def queue_raw_papers_for_reprocess(
             params.insert(0, limit)
             cursor.execute(
                 f"""
-                UPDATE raw.works
+                UPDATE {config.table_name}
                 SET
                     processed_status = 'pending',
                     process_error = NULL
-                WHERE raw_work_id IN (
-                    SELECT TOP (?) raw_work_id
-                    FROM raw.works
+                WHERE {config.id_column} IN (
+                    SELECT TOP (?) {config.id_column}
+                    FROM {config.table_name}
                     WHERE {' AND '.join(filters)}
                     ORDER BY fetched_at ASC
                 )
@@ -36,7 +41,7 @@ def queue_raw_papers_for_reprocess(
         else:
             cursor.execute(
                 f"""
-                UPDATE raw.works
+                UPDATE {config.table_name}
                 SET
                     processed_status = 'pending',
                     process_error = NULL
@@ -51,20 +56,19 @@ def queue_raw_papers_for_reprocess(
         return queued_count
 
 
-def reprocess_raw_papers(
+def reprocess_raw_entity(
+    entity: str,
+    process_pending_raw: Callable[[int], None],
     limit: int | None = None,
     source_record_id: str | None = None,
 ) -> int:
-    queued_count = queue_raw_papers_for_reprocess(
+    queued_count = queue_raw_entity_for_reprocess(
+        entity=entity,
         limit=limit,
         source_record_id=source_record_id,
     )
 
     if queued_count > 0:
-        process_pending_raw_papers(limit=queued_count)
+        process_pending_raw(limit=queued_count)
 
     return queued_count
-
-
-if __name__ == "__main__":
-    reprocess_raw_papers()
