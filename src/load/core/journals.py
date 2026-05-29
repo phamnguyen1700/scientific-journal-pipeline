@@ -5,6 +5,7 @@ from src.load.canonical_loader import (
     json_or_none,
     upsert_taxonomy_level,
 )
+from src.load.core.journal_types import get_or_create_journal_type, normalize_type_code
 from src.load.pipeline_run_loader import get_source_id
 
 
@@ -22,33 +23,35 @@ def upsert_journal_detail(
     issn_print = issn[0] if len(issn) > 0 else None
     issn_electronic = issn[1] if len(issn) > 1 else None
 
-    params = (
-        journal.get("display_name") or source_record_id,
-        journal.get("issn_l"),
-        issn_print,
-        issn_electronic,
-        journal.get("host_organization_name"),
-        journal.get("type"),
-        journal.get("homepage_url"),
-        journal.get("country_code"),
-        journal.get("works_count"),
-        journal.get("cited_by_count"),
-        journal.get("oa_works_count"),
-        journal.get("h_index"),
-        journal.get("i10_index"),
-        journal.get("two_year_mean_citedness"),
-        bool_or_none(journal.get("is_oa")),
-        bool_or_none(journal.get("is_in_doaj")),
-        bool_or_none(journal.get("is_core")),
-        journal.get("first_publication_year"),
-        journal.get("last_publication_year"),
-        json_or_none(journal.get("counts_by_year")),
-        journal.get("source_created_date"),
-        journal.get("source_updated_date"),
-    )
-
     with get_connection() as conn:
         cursor = conn.cursor()
+        journal_type = normalize_type_code(journal.get("type"))
+        journal_type_id = get_or_create_journal_type(cursor, journal_type)
+        params = (
+            journal.get("display_name") or source_record_id,
+            journal.get("issn_l"),
+            issn_print,
+            issn_electronic,
+            journal.get("host_organization_name"),
+            journal_type,
+            journal_type_id,
+            journal.get("homepage_url"),
+            journal.get("country_code"),
+            journal.get("works_count"),
+            journal.get("cited_by_count"),
+            journal.get("oa_works_count"),
+            journal.get("h_index"),
+            journal.get("i10_index"),
+            journal.get("two_year_mean_citedness"),
+            bool_or_none(journal.get("is_oa")),
+            bool_or_none(journal.get("is_in_doaj")),
+            bool_or_none(journal.get("is_core")),
+            journal.get("first_publication_year"),
+            journal.get("last_publication_year"),
+            json_or_none(journal.get("counts_by_year")),
+            journal.get("source_created_date"),
+            journal.get("source_updated_date"),
+        )
         journal_id = fetch_mapping_id(
             cursor,
             "core.journal_source_mappings",
@@ -68,6 +71,7 @@ def upsert_journal_detail(
                     issn_electronic = ?,
                     host_organization_name = ?,
                     journal_type = ?,
+                    journal_type_id = ?,
                     homepage_url = ?,
                     country_code = ?,
                     works_count = ?,
@@ -118,6 +122,7 @@ def upsert_journal_detail(
                     issn_electronic,
                     host_organization_name,
                     journal_type,
+                    journal_type_id,
                     homepage_url,
                     country_code,
                     works_count,
@@ -137,7 +142,7 @@ def upsert_journal_detail(
                     updated_at
                 )
                 OUTPUT INSERTED.journal_id
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME())
                 """,
                 *params,
             )

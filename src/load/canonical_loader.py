@@ -1,6 +1,7 @@
 import json
 
 from src.config.sqlserver import get_connection
+from src.load.core.journal_types import get_or_create_journal_type, normalize_type_code
 from src.load.pipeline_run_loader import get_source_id
 
 
@@ -178,6 +179,8 @@ def upsert_journal(journal: dict | None, source_id: str | None = None) -> str | 
 
     with get_connection() as conn:
         cursor = conn.cursor()
+        journal_type = normalize_type_code(journal.get("type"))
+        journal_type_id = get_or_create_journal_type(cursor, journal_type)
         journal_id = fetch_mapping_id(
             cursor,
             "core.journal_source_mappings",
@@ -197,6 +200,7 @@ def upsert_journal(journal: dict | None, source_id: str | None = None) -> str | 
                     issn_electronic = ?,
                     host_organization_name = ?,
                     journal_type = ?,
+                    journal_type_id = ?,
                     is_open_access = ?,
                     is_in_doaj = ?,
                     is_core = ?,
@@ -208,7 +212,8 @@ def upsert_journal(journal: dict | None, source_id: str | None = None) -> str | 
                 issn_print,
                 issn_electronic,
                 journal.get("host_organization_name"),
-                journal.get("type"),
+                journal_type,
+                journal_type_id,
                 bool_or_none(journal.get("is_oa")),
                 bool_or_none(journal.get("is_in_doaj")),
                 bool_or_none(journal.get("is_core")),
@@ -224,20 +229,22 @@ def upsert_journal(journal: dict | None, source_id: str | None = None) -> str | 
                     issn_electronic,
                     host_organization_name,
                     journal_type,
+                    journal_type_id,
                     is_open_access,
                     is_in_doaj,
                     is_core,
                     updated_at
                 )
                 OUTPUT INSERTED.journal_id
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME())
                 """,
                 journal.get("display_name") or source_record_id,
                 journal.get("issn_l"),
                 issn_print,
                 issn_electronic,
                 journal.get("host_organization_name"),
-                journal.get("type"),
+                journal_type,
+                journal_type_id,
                 bool_or_none(journal.get("is_oa")),
                 bool_or_none(journal.get("is_in_doaj")),
                 bool_or_none(journal.get("is_core")),
@@ -728,4 +735,3 @@ def upsert_topics(
         conn.commit()
 
     return topic_ids
-

@@ -7,6 +7,8 @@ from src.jobs.process.raw_works import (
 )
 
 from src.config.seed_keywords import SEED_KEYWORDS
+from src.utils.console import success as console_success
+from src.utils.console import warning as console_warning
 
 
 def main():
@@ -27,10 +29,10 @@ def main():
 
             process_pending_raw_works(limit=inserted_count)
 
-            print(f"Transform success for keyword: {keyword}")
+            print(console_success(f"Transform success for keyword: {keyword}"))
 
         else:
-            print(f"No new records inserted for keyword: {keyword}")
+            print(console_warning(f"No new records inserted for keyword: {keyword}"))
 
     print(f"\nPipeline completed. " f"Total changed raw works: {total_inserted}")
 
