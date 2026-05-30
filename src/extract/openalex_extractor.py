@@ -1,6 +1,7 @@
-import httpx
 from dataclasses import dataclass
 from time import sleep
+
+import httpx
 
 from src.config.settings import OPENALEX_API_KEY, OPENALEX_BASE_URL, OPENALEX_MAILTO
 

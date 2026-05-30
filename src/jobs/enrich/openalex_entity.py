@@ -6,11 +6,6 @@ from src.extract.openalex_extractor import (
     OPENALEX_TIMEOUT,
     fetch_openalex_entity_record,
 )
-from src.load.pipeline_run_loader import (
-    create_pipeline_run,
-    mark_pipeline_run_failed,
-    mark_pipeline_run_success,
-)
 from src.load.ops.job_runs import (
     attach_pipeline_run,
     log_job,
@@ -18,6 +13,11 @@ from src.load.ops.job_runs import (
     mark_job_run_skipped,
     mark_job_run_success,
     start_job_run,
+)
+from src.load.pipeline_run_loader import (
+    create_pipeline_run,
+    mark_pipeline_run_failed,
+    mark_pipeline_run_success,
 )
 from src.load.raw.entities import load_raw_entities
 from src.utils.console import error as console_error

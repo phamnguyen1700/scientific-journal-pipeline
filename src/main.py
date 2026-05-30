@@ -1,15 +1,13 @@
 from time import sleep
 
+from src.config.seed_keywords import SEED_KEYWORDS
+from src.config.settings import OPENALEX_KEYWORD_DELAY_SECONDS
 from src.jobs.ingest.openalex_works import (
     run_openalex_raw_ingestion,
 )
-
 from src.jobs.process.raw_works import (
     process_pending_raw_works,
 )
-
-from src.config.seed_keywords import SEED_KEYWORDS
-from src.config.settings import OPENALEX_KEYWORD_DELAY_SECONDS
 from src.utils.console import success as console_success
 from src.utils.console import warning as console_warning
 

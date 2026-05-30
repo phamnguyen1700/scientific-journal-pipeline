@@ -2,21 +2,20 @@ import argparse
 
 from src.config.settings import DEFAULT_BATCH_SIZE
 from src.jobs.process.raw_processor import process_pending_raw_entities
-from src.load.pipeline_run_loader import get_source_id
-from src.transform.openalex.works import (
-    transform_paper,
-    transform_authors,
-    transform_journal,
-    transform_keywords,
-    transform_topics,
-)
-
 from src.load.canonical_loader import (
-    upsert_paper,
     upsert_authors,
     upsert_journal,
     upsert_keywords,
+    upsert_paper,
     upsert_topics,
+)
+from src.load.pipeline_run_loader import get_source_id
+from src.transform.openalex.works import (
+    transform_authors,
+    transform_journal,
+    transform_keywords,
+    transform_paper,
+    transform_topics,
 )
 
 
