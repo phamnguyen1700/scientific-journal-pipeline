@@ -150,6 +150,8 @@ activemq-data/
 # Environments
 .env
 .envrc
+.env.*
+!.env.example
 .venv
 env/
 venv/
@@ -205,6 +207,12 @@ tempCodeRunnerFile.py
 
 # Ruff stuff:
 .ruff_cache/
+
+# Database backups
+*.bak
+*.mdf
+*.ldf
+*.ndf
 
 # PyPI configuration file
 .pypirc

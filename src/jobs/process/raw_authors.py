@@ -35,7 +35,9 @@ def process_pending_raw_authors(limit: int = DEFAULT_BATCH_SIZE) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Process pending raw OpenAlex authors.")
+    parser = argparse.ArgumentParser(
+        description="Process pending raw OpenAlex authors."
+    )
     parser.add_argument("--limit", type=int, default=DEFAULT_BATCH_SIZE)
     args = parser.parse_args()
 

@@ -70,7 +70,7 @@ def upsert_author_detail(
                     works_api_url = ?,
                     source_created_date = ?,
                     source_updated_date = ?,
-                    updated_at = SYSUTCDATETIME()
+                    updated_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                 WHERE author_id = ?
                 """,
                 *params,
@@ -120,7 +120,7 @@ def upsert_author_detail(
                     updated_at
                 )
                 OUTPUT INSERTED.author_id
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATEADD(HOUR, 7, SYSUTCDATETIME()))
                 """,
                 *params,
             )

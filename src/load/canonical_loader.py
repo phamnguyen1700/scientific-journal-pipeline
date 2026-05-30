@@ -70,7 +70,7 @@ def upsert_taxonomy_level(
                 UPDATE {entity_table}
                 SET
                     {entity_name_column} = ?,
-                    updated_at = SYSUTCDATETIME()
+                    updated_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                 WHERE {entity_id_column} = ?
                 """,
                 display_name,
@@ -117,7 +117,7 @@ def upsert_taxonomy_level(
                     updated_at
                 )
                 OUTPUT INSERTED.{entity_id_column}
-                VALUES (?, ?, SYSUTCDATETIME())
+                VALUES (?, ?, DATEADD(HOUR, 7, SYSUTCDATETIME()))
                 """,
                 parent_id,
                 display_name,
@@ -130,7 +130,7 @@ def upsert_taxonomy_level(
                     updated_at
                 )
                 OUTPUT INSERTED.{entity_id_column}
-                VALUES (?, SYSUTCDATETIME())
+                VALUES (?, DATEADD(HOUR, 7, SYSUTCDATETIME()))
                 """,
                 display_name,
             )
@@ -204,7 +204,7 @@ def upsert_journal(journal: dict | None, source_id: str | None = None) -> str | 
                     is_open_access = ?,
                     is_in_doaj = ?,
                     is_core = ?,
-                    updated_at = SYSUTCDATETIME()
+                    updated_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                 WHERE journal_id = ?
                 """,
                 journal.get("display_name") or source_record_id,
@@ -236,7 +236,7 @@ def upsert_journal(journal: dict | None, source_id: str | None = None) -> str | 
                     updated_at
                 )
                 OUTPUT INSERTED.journal_id
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATEADD(HOUR, 7, SYSUTCDATETIME()))
                 """,
                 journal.get("display_name") or source_record_id,
                 journal.get("issn_l"),
@@ -339,7 +339,7 @@ def upsert_paper(
                     related_works = ?,
                     abstract_inverted_index = ?,
                     counts_by_year = ?,
-                    updated_at = SYSUTCDATETIME()
+                    updated_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                 WHERE paper_id = ?
                 """,
                 *params,
@@ -371,7 +371,7 @@ def upsert_paper(
                     updated_at
                 )
                 OUTPUT INSERTED.paper_id
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATEADD(HOUR, 7, SYSUTCDATETIME()))
                 """,
                 *params,
             )
@@ -438,7 +438,7 @@ def upsert_authors(
                         raw_author_names = ?,
                         affiliations = ?,
                         last_known_institutions = ?,
-                        updated_at = SYSUTCDATETIME()
+                        updated_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                     WHERE author_id = ?
                     """,
                     author.get("display_name") or source_record_id,
@@ -460,7 +460,7 @@ def upsert_authors(
                         updated_at
                     )
                     OUTPUT INSERTED.author_id
-                    VALUES (?, ?, ?, ?, ?, SYSUTCDATETIME())
+                    VALUES (?, ?, ?, ?, ?, DATEADD(HOUR, 7, SYSUTCDATETIME()))
                     """,
                     author.get("display_name") or source_record_id,
                     author.get("orcid"),
@@ -565,7 +565,7 @@ def upsert_keywords(
                     UPDATE core.keywords
                     SET
                         keyword_name = ?,
-                        updated_at = SYSUTCDATETIME()
+                        updated_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                     WHERE keyword_id = ?
                     """,
                     keyword_name,
@@ -579,7 +579,7 @@ def upsert_keywords(
                         updated_at
                     )
                     OUTPUT INSERTED.keyword_id
-                    VALUES (?, SYSUTCDATETIME())
+                    VALUES (?, DATEADD(HOUR, 7, SYSUTCDATETIME()))
                     """,
                     keyword_name,
                 )

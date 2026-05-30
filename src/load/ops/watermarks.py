@@ -82,6 +82,7 @@ def mark_watermark_success(
     scope_type: str,
     scope_value: str,
     last_cursor: str | None = None,
+    clear_cursor: bool = False,
     last_from_updated_date=None,
     last_to_updated_date=None,
     last_processed_record_id: str | None = None,
@@ -94,6 +95,7 @@ def mark_watermark_success(
         scope_value=scope_value,
         set_success=True,
         last_cursor=last_cursor,
+        clear_cursor=clear_cursor,
         last_from_updated_date=last_from_updated_date,
         last_to_updated_date=last_to_updated_date,
         last_processed_record_id=last_processed_record_id,
@@ -109,6 +111,7 @@ def upsert_crawl_watermark(
     set_started: bool = False,
     set_success: bool = False,
     last_cursor: str | None = None,
+    clear_cursor: bool = False,
     last_from_updated_date=None,
     last_to_updated_date=None,
     last_processed_record_id: str | None = None,
@@ -141,19 +144,21 @@ def upsert_crawl_watermark(
                 UPDATE ops.crawl_watermarks
                 SET
                     last_started_at =
-                        CASE WHEN ? = 1 THEN SYSUTCDATETIME() ELSE last_started_at END,
+                        CASE WHEN ? = 1 THEN DATEADD(HOUR, 7, SYSUTCDATETIME()) ELSE last_started_at END,
                     last_success_at =
-                        CASE WHEN ? = 1 THEN SYSUTCDATETIME() ELSE last_success_at END,
-                    last_cursor = COALESCE(?, last_cursor),
+                        CASE WHEN ? = 1 THEN DATEADD(HOUR, 7, SYSUTCDATETIME()) ELSE last_success_at END,
+                    last_cursor =
+                        CASE WHEN ? = 1 THEN NULL ELSE COALESCE(?, last_cursor) END,
                     last_from_updated_date = COALESCE(?, last_from_updated_date),
                     last_to_updated_date = COALESCE(?, last_to_updated_date),
                     last_processed_record_id = COALESCE(?, last_processed_record_id),
                     metadata = COALESCE(?, metadata),
-                    updated_at = SYSUTCDATETIME()
+                    updated_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                 WHERE watermark_id = ?
                 """,
                 1 if set_started else 0,
                 1 if set_success else 0,
+                1 if clear_cursor else 0,
                 last_cursor,
                 last_from_updated_date,
                 last_to_updated_date,
@@ -181,9 +186,9 @@ def upsert_crawl_watermark(
                 OUTPUT INSERTED.watermark_id
                 VALUES (
                     ?, ?, ?, ?,
-                    CASE WHEN ? = 1 THEN SYSUTCDATETIME() ELSE NULL END,
-                    CASE WHEN ? = 1 THEN SYSUTCDATETIME() ELSE NULL END,
-                    ?, ?, ?, ?, ?, SYSUTCDATETIME()
+                    CASE WHEN ? = 1 THEN DATEADD(HOUR, 7, SYSUTCDATETIME()) ELSE NULL END,
+                    CASE WHEN ? = 1 THEN DATEADD(HOUR, 7, SYSUTCDATETIME()) ELSE NULL END,
+                    ?, ?, ?, ?, ?, DATEADD(HOUR, 7, SYSUTCDATETIME())
                 )
                 """,
                 source_id,

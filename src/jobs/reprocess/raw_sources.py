@@ -18,7 +18,9 @@ def reprocess_raw_sources(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Queue and reprocess raw OpenAlex sources.")
+    parser = argparse.ArgumentParser(
+        description="Queue and reprocess raw OpenAlex sources."
+    )
     parser.add_argument("--limit", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--source-record-id", type=str, default=None)
     args = parser.parse_args()

@@ -29,7 +29,7 @@ def get_or_create_journal_type(cursor, type_code: str | None) -> str | None:
             updated_at
         )
         OUTPUT INSERTED.journal_type_id
-        VALUES (?, ?, SYSUTCDATETIME())
+        VALUES (?, ?, DATEADD(HOUR, 7, SYSUTCDATETIME()))
         """,
         normalized_type_code,
         normalized_type_code.replace("-", " ").title(),

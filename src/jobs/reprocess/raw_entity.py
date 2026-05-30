@@ -39,7 +39,7 @@ def queue_raw_entity_for_reprocess(
                 WHERE {config.id_column} IN (
                     SELECT TOP (?) {config.id_column}
                     FROM {config.table_name}
-                    WHERE {' AND '.join(filters)}
+                    WHERE {" AND ".join(filters)}
                     ORDER BY fetched_at ASC
                 )
                 """,
@@ -52,7 +52,7 @@ def queue_raw_entity_for_reprocess(
                 SET
                     processed_status = 'pending',
                     process_error = NULL
-                WHERE {' AND '.join(filters)}
+                WHERE {" AND ".join(filters)}
                 """,
                 *params,
             )

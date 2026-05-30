@@ -48,7 +48,9 @@ def get_raw_entity_config(entity: str) -> RawEntityConfig:
         return RAW_ENTITY_CONFIGS[entity]
     except KeyError as error:
         supported = ", ".join(sorted(RAW_ENTITY_CONFIGS))
-        raise ValueError(f"Unsupported raw entity '{entity}'. Supported: {supported}") from error
+        raise ValueError(
+            f"Unsupported raw entity '{entity}'. Supported: {supported}"
+        ) from error
 
 
 def load_raw_entities(
@@ -105,7 +107,7 @@ def load_raw_entities(
                                 query_keyword = ?,
                                 pipeline_run_id = ?,
                                 raw_data = ?,
-                                last_seen_at = SYSUTCDATETIME(),
+                                last_seen_at = DATEADD(HOUR, 7, SYSUTCDATETIME()),
                                 processed_status = ?,
                                 process_error = ?
                             WHERE {config.id_column} = ?
@@ -127,7 +129,7 @@ def load_raw_entities(
                                 query_keyword = ?,
                                 pipeline_run_id = ?,
                                 raw_data = ?,
-                                last_seen_at = SYSUTCDATETIME()
+                                last_seen_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                             WHERE {config.id_column} = ?
                             """,
                             config.entity,
@@ -146,7 +148,7 @@ def load_raw_entities(
                                 source_record_url = ?,
                                 pipeline_run_id = ?,
                                 raw_data = ?,
-                                last_seen_at = SYSUTCDATETIME(),
+                                last_seen_at = DATEADD(HOUR, 7, SYSUTCDATETIME()),
                                 processed_status = ?,
                                 process_error = ?
                             WHERE {config.id_column} = ?
@@ -168,7 +170,7 @@ def load_raw_entities(
                                 source_record_url = ?,
                                 pipeline_run_id = ?,
                                 raw_data = ?,
-                                last_seen_at = SYSUTCDATETIME()
+                                last_seen_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                             WHERE {config.id_column} = ?
                             """,
                             config.entity,
@@ -199,8 +201,8 @@ def load_raw_entities(
                     )
                     VALUES (
                         ?, ?, ?, ?, ?, ?,
-                        SYSUTCDATETIME(),
-                        SYSUTCDATETIME(),
+                        DATEADD(HOUR, 7, SYSUTCDATETIME()),
+                        DATEADD(HOUR, 7, SYSUTCDATETIME()),
                         'pending'
                     )
                     """,
@@ -227,8 +229,8 @@ def load_raw_entities(
                     )
                     VALUES (
                         ?, ?, ?, ?, ?, ?,
-                        SYSUTCDATETIME(),
-                        SYSUTCDATETIME(),
+                        DATEADD(HOUR, 7, SYSUTCDATETIME()),
+                        DATEADD(HOUR, 7, SYSUTCDATETIME()),
                         'pending'
                     )
                     """,

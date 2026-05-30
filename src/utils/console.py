@@ -7,6 +7,7 @@ COLORS = {
     "green": "\033[32m",
     "red": "\033[31m",
     "yellow": "\033[33m",
+    "light_yellow": "\033[93m",
     "cyan": "\033[36m",
 }
 
@@ -31,6 +32,10 @@ def error(message: str) -> str:
 
 def warning(message: str) -> str:
     return colorize(message, "yellow")
+
+
+def progress(message: str) -> str:
+    return colorize(message, "light_yellow")
 
 
 def info(message: str) -> str:

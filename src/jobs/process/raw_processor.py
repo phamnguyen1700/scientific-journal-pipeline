@@ -12,7 +12,7 @@ from src.load.ops.job_runs import (
 from src.load.raw.entities import get_raw_entity_config
 from src.load.raw.status import mark_raw_entity_failed, mark_raw_entity_processed
 from src.utils.console import error as console_error
-from src.utils.console import success as console_success
+from src.utils.console import progress as console_progress
 
 
 def fetch_pending_raw_entities(entity: str, limit: int) -> list:
@@ -66,7 +66,7 @@ def process_pending_raw_entities(
             success_message = handle_raw_record(raw, raw_id)
 
             mark_raw_entity_processed(entity, raw_id)
-            print(console_success(success_message))
+            print(console_progress(success_message))
             processed_count += 1
             log_job(
                 job_run_id,

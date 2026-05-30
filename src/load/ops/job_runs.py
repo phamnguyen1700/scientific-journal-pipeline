@@ -130,7 +130,7 @@ def finish_job_run(
             UPDATE ops.job_runs
             SET
                 status = ?,
-                finished_at = SYSUTCDATETIME(),
+                finished_at = DATEADD(HOUR, 7, SYSUTCDATETIME()),
                 records_in = COALESCE(?, records_in),
                 records_out = COALESCE(?, records_out),
                 records_failed = COALESCE(?, records_failed),

@@ -88,7 +88,7 @@ def upsert_journal_detail(
                     counts_by_year = ?,
                     source_created_date = ?,
                     source_updated_date = ?,
-                    updated_at = SYSUTCDATETIME()
+                    updated_at = DATEADD(HOUR, 7, SYSUTCDATETIME())
                 WHERE journal_id = ?
                 """,
                 *params,
@@ -142,7 +142,7 @@ def upsert_journal_detail(
                     updated_at
                 )
                 OUTPUT INSERTED.journal_id
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATEADD(HOUR, 7, SYSUTCDATETIME()))
                 """,
                 *params,
             )

@@ -75,7 +75,7 @@ def mark_pipeline_run_success(
             UPDATE raw.pipeline_runs
             SET
                 status = 'success',
-                finished_at = SYSUTCDATETIME(),
+                finished_at = DATEADD(HOUR, 7, SYSUTCDATETIME()),
                 records_fetched = ?,
                 records_inserted = ?,
                 records_failed = ?
@@ -97,7 +97,7 @@ def mark_pipeline_run_failed(run_id: str, error_message: str) -> None:
             UPDATE raw.pipeline_runs
             SET
                 status = 'failed',
-                finished_at = SYSUTCDATETIME(),
+                finished_at = DATEADD(HOUR, 7, SYSUTCDATETIME()),
                 error_message = ?
             WHERE run_id = ?
             """,

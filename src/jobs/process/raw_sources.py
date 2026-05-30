@@ -23,7 +23,9 @@ def handle_raw_source(raw: dict, raw_source_id: str) -> str:
         raw_source_id=raw_source_id,
     )
 
-    return f"Processed source: {journal['source_record_id']} | {journal['display_name']}"
+    return (
+        f"Processed source: {journal['source_record_id']} | {journal['display_name']}"
+    )
 
 
 def process_pending_raw_sources(limit: int = DEFAULT_BATCH_SIZE) -> None:
@@ -35,7 +37,9 @@ def process_pending_raw_sources(limit: int = DEFAULT_BATCH_SIZE) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Process pending raw OpenAlex sources.")
+    parser = argparse.ArgumentParser(
+        description="Process pending raw OpenAlex sources."
+    )
     parser.add_argument("--limit", type=int, default=DEFAULT_BATCH_SIZE)
     args = parser.parse_args()
 
