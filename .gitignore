@@ -214,6 +214,10 @@ tempCodeRunnerFile.py
 *.ldf
 *.ndf
 
+# Airflow runtime logs
+airflow/logs/*
+!airflow/logs/.gitkeep
+
 # PyPI configuration file
 .pypirc
 

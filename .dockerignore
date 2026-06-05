@@ -17,6 +17,7 @@ __pycache__/
 
 docs/
 docx_render_check/
+airflow/logs/
 
 *.bak
 *.mdf
