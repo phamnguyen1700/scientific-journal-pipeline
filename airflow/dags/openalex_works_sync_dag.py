@@ -35,6 +35,7 @@ with DAG(
     sync_openalex_works = BashOperator(
         task_id="sync_openalex_works",
         bash_command=(
+            "cd /opt/airflow && "
             "python -m src.jobs.sync.openalex_works "
             f'--keywords "{",".join(OPENALEX_KEYWORDS)}" '
             "--per-page 25 "
