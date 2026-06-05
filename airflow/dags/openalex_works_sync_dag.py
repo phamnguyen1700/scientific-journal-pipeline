@@ -20,6 +20,7 @@ OPENALEX_KEYWORDS = [
     "natural language processing",
     "data mining",
 ]
+OPENALEX_KEYWORD_ARGS = " ".join(f'"{keyword}"' for keyword in OPENALEX_KEYWORDS)
 
 
 with DAG(
@@ -27,7 +28,7 @@ with DAG(
     description="Sync OpenAlex works and enrich authors/sources into SQL Server.",
     default_args=DEFAULT_ARGS,
     start_date=pendulum.datetime(2026, 6, 1, tz="Asia/Ho_Chi_Minh"),
-    schedule=None,
+    schedule="0 2 * * 1",
     catchup=False,
     max_active_runs=1,
     tags=["openalex", "works", "dataops"],
@@ -37,12 +38,12 @@ with DAG(
         bash_command=(
             "cd /opt/airflow && "
             "python -m src.jobs.sync.openalex_works "
-            f'--keywords "{",".join(OPENALEX_KEYWORDS)}" '
-            "--per-page 25 "
+            f"--keywords {OPENALEX_KEYWORD_ARGS} "
+            "--per-page 10 "
             "--max-pages-per-keyword 1 "
             "--page-delay-seconds 2 "
             "--enrich-authors "
             "--enrich-sources "
-            "--enrich-limit 25"
+            "--enrich-limit 300"
         ),
     )

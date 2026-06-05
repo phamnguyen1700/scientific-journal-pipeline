@@ -20,7 +20,15 @@ def normalize_keywords(keywords: list[str] | None) -> list[str]:
     if not keywords:
         return SEED_KEYWORDS
 
-    return [keyword.strip() for keyword in keywords if keyword.strip()]
+    normalized_keywords = []
+    for raw_keyword in keywords:
+        normalized_keywords.extend(
+            keyword.strip()
+            for keyword in raw_keyword.split(",")
+            if keyword.strip()
+        )
+
+    return normalized_keywords
 
 
 def sync_openalex_works(
