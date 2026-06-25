@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Python, Docker, and Airflow
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install OS dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends unixodbc unixodbc-dev
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run lint
+        run: ruff check src airflow
+
+      - name: Compile Python files
+        run: python -m compileall src airflow
+
+      - name: Build pipeline image
+        run: docker build -t scientific-journal-pipeline:ci .
+
+      - name: Build Airflow image
+        run: docker build -f airflow/Dockerfile -t scientific-journal-airflow:ci .
+
+      - name: Validate Airflow DAGs
+        - name: Validate Airflow DAGs
+        run: |
+          docker run --rm \
+            -e AIRFLOW__CORE__LOAD_EXAMPLES=false \
+            -v "$PWD/airflow/dags:/opt/airflow/dags" \
+            scientific-journal-airflow:ci \
+            bash -c "airflow db migrate && airflow dags list"
