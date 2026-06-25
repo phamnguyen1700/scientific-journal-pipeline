@@ -30,7 +30,7 @@ jobs:
             docker compose up -d --build airflow-postgres airflow-init airflow-webserver airflow-scheduler
             docker compose --profile airflow ps
             for i in {1..30}; do
-              if curl -fsS http://localhost:8080/health; then
+              if curl -sS http://localhost:8080/health; then
                 exit 0
               fi
               echo "Waiting for Airflow webserver health check... attempt $i/30"
