@@ -30,9 +30,22 @@ jobs:
             docker compose up -d --build airflow-postgres airflow-init airflow-webserver airflow-scheduler
             docker compose --profile airflow ps
             for i in {1..30}; do
-              if curl -sS http://localhost:8080/health; then
-                exit 0
+              http_code="000"
+
+              if http_code=$(curl -sS -o /tmp/airflow-health.json -w "%{http_code}" http://localhost:8080/health); then
+                echo "Airflow health attempt $i/30: http_code=$http_code"
+                cat /tmp/airflow-health.json || true
+                echo
+
+                if [ "$http_code" = "200" ]; then
+                  echo "Airflow webserver is healthy."
+                  exit 0
+                fi
+              else
+                curl_exit=$?
+                echo "Airflow health attempt $i/30: curl_exit=$curl_exit http_code=$http_code"
               fi
+
               echo "Waiting for Airflow webserver health check... attempt $i/30"
               sleep 5
             done
