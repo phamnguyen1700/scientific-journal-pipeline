@@ -52,6 +52,7 @@ jobs:
       - name: Validate Airflow DAGs
         run: |
           docker run --rm \
+            -e AIRFLOW__CORE__LOAD_EXAMPLES=false \
             -v "$PWD/airflow/dags:/opt/airflow/dags" \
             scientific-journal-airflow:ci \
             airflow dags list
