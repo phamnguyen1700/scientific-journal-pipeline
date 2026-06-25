@@ -27,7 +27,7 @@ jobs:
             set -e
             cd /opt/scientific-journal-pipeline
             git pull origin main
-            docker compose --profile airflow up -d --build
+            docker compose up -d --build airflow-postgres airflow-init airflow-webserver airflow-scheduler
             docker compose --profile airflow ps
             curl -f http://localhost:8080/health
           EOF
