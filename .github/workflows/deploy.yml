@@ -29,5 +29,15 @@ jobs:
             git pull origin main
             docker compose up -d --build airflow-postgres airflow-init airflow-webserver airflow-scheduler
             docker compose --profile airflow ps
-            curl -f http://localhost:8080/health
+            for i in {1..30}; do
+              if curl -fsS http://localhost:8080/health; then
+                exit 0
+              fi
+              echo "Waiting for Airflow webserver health check... attempt $i/30"
+              sleep 5
+            done
+
+            echo "Airflow webserver health check failed"
+            docker compose logs --tail=100 airflow-webserver
+            exit 1
           EOF
