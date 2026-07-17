@@ -31,7 +31,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy scientific-journal-pipeline from GitHub Actions" \
             --parameters 'commands=[
-              "set -euo pipefail",
+              "set -eu",
               "cd /opt/scientific-journal-pipeline",
               "git pull origin main",
               "docker compose up -d --build airflow-postgres airflow-init airflow-webserver airflow-scheduler",
