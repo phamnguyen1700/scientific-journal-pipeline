@@ -29,7 +29,7 @@ pip install -r requirements.txt
 
 ## Environment
 
-The project reads SQL Server and OpenAlex settings from `.env`.
+The project reads SQL Server, OpenAlex, and Crossref settings from `.env`.
 
 Required values:
 
@@ -44,6 +44,8 @@ SQLSERVER_ENCRYPT=no
 SQLSERVER_TRUST_SERVER_CERTIFICATE=yes
 
 OPENALEX_BASE_URL=https://api.openalex.org
+CROSSREF_BASE_URL=https://api.crossref.org
+CROSSREF_MAILTO=your-team-email@example.com
 ```
 
 ## Run Pipeline
@@ -119,6 +121,27 @@ python -m src.jobs.enrich.openalex_all
 ```
 
 Add `--skip-process` if you only want to refresh `raw.*` records and process them later.
+
+## Crossref Follow-Up
+
+Crossref runs as a DOI follow-up checker for papers already created from OpenAlex.
+It writes to `raw.crossref_works` and `enrich.paper_source_checks`, and does not
+overwrite `core.papers`.
+
+Run a healthcheck:
+
+```powershell
+python -m src.jobs.followup.crossref_healthcheck
+```
+
+Run a small follow-up batch:
+
+```powershell
+python -m src.jobs.followup.crossref_works --limit 20
+```
+
+See `docs/crossref_followup_operations.md` for migration, reprocess, and Airflow
+operations.
 
 ## Notes
 
