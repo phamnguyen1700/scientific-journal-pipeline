@@ -14,12 +14,24 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      # - name: Configure SSH
+      #   run: |
+      #     mkdir -p ~/.ssh
+      #     echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
+      #     chmod 600 ~/.ssh/ec2_key
+      #     ssh-keyscan -p "${{ secrets.EC2_PORT }}" -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
       - name: Configure SSH
         run: |
+          set -euxo pipefail
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
-          ssh-keyscan -p "${{ secrets.EC2_PORT }}" -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+          echo "EC2_HOST length: $(echo -n '${{ secrets.EC2_HOST }}' | wc -c)"
+          echo "EC2_PORT value: ${{ secrets.EC2_PORT }}"
+          echo "EC2_USER length: $(echo -n '${{ secrets.EC2_USER }}' | wc -c)"
+
+          ssh-keyscan -v -p "${{ secrets.EC2_PORT }}" -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Deploy over SSH
         run: |
