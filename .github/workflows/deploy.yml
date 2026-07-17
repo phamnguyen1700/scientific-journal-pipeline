@@ -32,6 +32,7 @@ jobs:
             --comment "Deploy scientific-journal-pipeline from GitHub Actions" \
             --parameters 'commands=[
               "set -eu",
+              "export HOME=/root",
               "cd /opt/scientific-journal-pipeline",
               "git config --global --add safe.directory /opt/scientific-journal-pipeline",
               "git pull origin main",
