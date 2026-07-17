@@ -3,7 +3,7 @@ from time import sleep
 
 import httpx
 
-from src.config.settings import CROSSREF_PAGE_DELAY_SECONDS, DEFAULT_BATCH_SIZE
+from src.config.settings import CROSSREF_PAGE_DELAY_SECONDS
 from src.extract.crossref_extractor import (
     CROSSREF_TIMEOUT,
     fetch_work_agency_by_doi,
