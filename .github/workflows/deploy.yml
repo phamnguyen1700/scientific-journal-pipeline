@@ -33,6 +33,7 @@ jobs:
             --parameters 'commands=[
               "set -eu",
               "cd /opt/scientific-journal-pipeline",
+              "git config --global --add safe.directory /opt/scientific-journal-pipeline",
               "git pull origin main",
               "docker compose up -d --build airflow-postgres airflow-init airflow-webserver airflow-scheduler",
               "docker compose ps airflow-postgres airflow-webserver airflow-scheduler",
